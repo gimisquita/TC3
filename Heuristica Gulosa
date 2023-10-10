@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 # Dados fornecidos
 NC = np.array ([14,13,15,10,10,15,5,12,15,16,
@@ -115,6 +116,7 @@ def calcular_custo(total_onibus1, total_onibus2, km_onibus1, km_onibus2):
             total_onibus2 * custo_fixo_onibus2 + km_onibus2 * custo_km_onibus2)
 
 def solucao_gulosa():
+    start_time = time.time()  # Marcar o início do tempo
     pontos_atendidos = set()
     total_onibus1 = total_onibus2 = km_onibus1 = km_onibus2 = 0
 
@@ -125,8 +127,9 @@ def solucao_gulosa():
         empregados_no_onibus = 0
         distancia_rota = 0
         rota = []
-
         while (empregados_no_onibus < capacidade_onibus1 and onibus == 1) or (empregados_no_onibus < capacidade_onibus2 and onibus == 2):
+            if time.time() - start_time > 60:  # Verificar o tempo transcorrido
+                return calcular_custo(total_onibus1, total_onibus2, km_onibus1, km_onibus2), total_onibus1, total_onibus2, km_onibus1, km_onibus2
             # Escolhe o próximo ponto baseado na proximidade e capacidade disponível
             ponto_atual = None
             if rota:
@@ -161,6 +164,8 @@ def solucao_gulosa():
             km_onibus2 += distancia_rota
 
     while empregados_no_onibus < (capacidade_onibus1 if total_onibus1 < max_onibus1 else capacidade_onibus2) and len(pontos_atendidos) < 30:
+            if time.time() - start_time > 60:  # Verificar o tempo transcorrido
+            return calcular_custo(total_onibus1, total_onibus2, km_onibus1, km_onibus2), total_onibus1, total_onibus2, km_onibus1, km_onibus2
             # Escolhe o próximo ponto baseado na proximidade e capacidade disponível
             ponto_atual = None
             if rota:
