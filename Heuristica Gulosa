@@ -100,54 +100,103 @@ d = np.array ([
  87.05170877128145,86.5520074868284,137.31715115017496,138.2931668593933,82.21994952564737,112.64102272262978,136.12494260788506,15.033296378372908,93.02150289046077,0.0]
 ]) # Matriz de distância entre os pontos
 
-# Custo fixo dos ônibus
-custo_fixo_onibus1 = 15000
-custo_fixo_onibus2 = 4000
-
-# Custo por km rodado
-custo_km_onibus1 = 3.20
-custo_km_onibus2 = 2.90
-
-# Capacidade dos ônibus
+# Definindo constantes e variáveis do problema
 capacidade_onibus1 = 48
 capacidade_onibus2 = 16
-
-# Número máximo de ônibus
 max_onibus1 = 10
 max_onibus2 = 30
+custo_fixo_onibus1 = 1500
+custo_km_onibus1 = 3.20
+custo_fixo_onibus2 = 4000
+custo_km_onibus2 = 2.90
 
 def calcular_custo(total_onibus1, total_onibus2, km_onibus1, km_onibus2):
-    return (total_onibus1 * custo_fixo_onibus1 + km_onibus1 * custo_km_onibus1 +
-            total_onibus2 * custo_fixo_onibus2 + km_onibus2 * custo_km_onibus2)
+    return (total_onibus1 * custo_fixo_onibus1 + (km_onibus1 * custo_km_onibus1*2*28) +
+            total_onibus2 * custo_fixo_onibus2 + (km_onibus2 * custo_km_onibus2*2*28))
 
 def solucao_gulosa():
+    pontos_atendidos = set()
     total_onibus1 = total_onibus2 = km_onibus1 = km_onibus2 = 0
-    for i in range(30):
-        n = NC[i]  # número de clientes no ponto i
 
-        # Agora usamos a matriz de distância para calcular a distância entre os pontos
-        distancia = 0
-        for j in range(30):
-            distancia += d[i][j] if i != j else 0
-        distancia *= 2  # ida e volta
+    # Pré-alocar um ônibus de cada tipo
+    onibus_pre_alocados = [1, 2]
 
-        while n > 0:
-            if n > capacidade_onibus2 and total_onibus1 < max_onibus1:
-                # Utilizar ônibus 1 se possível
-                n -= capacidade_onibus1
-                total_onibus1 += 1
-                km_onibus1 += distancia
+    for onibus in onibus_pre_alocados:
+        empregados_no_onibus = 0
+        distancia_rota = 0
+        rota = []
+
+        while (empregados_no_onibus < capacidade_onibus1 and onibus == 1) or (empregados_no_onibus < capacidade_onibus2 and onibus == 2):
+            # Escolhe o próximo ponto baseado na proximidade e capacidade disponível
+            ponto_atual = None
+            if rota:
+                ponto_atual = min(
+                    set(range(30)) - pontos_atendidos,
+                    key=lambda x: d[rota[-1]][x] if NC[x] <= (capacidade_onibus1 - empregados_no_onibus if onibus == 1 else capacidade_onibus2 - empregados_no_onibus) else float('inf')
+                )
             else:
-                # Utilizar ônibus 2
-                n -= capacidade_onibus2
-                total_onibus2 += 1
-                km_onibus2 += distancia
+                ponto_atual = max(range(30), key=lambda x: dpe[x] if x not in pontos_atendidos else -1)
+
+            if ponto_atual is None:
+                break
+
+            pontos_atendidos.add(ponto_atual)
+            empregados_no_onibus += NC[ponto_atual]
+            if rota:
+                distancia_rota += d[rota[-1]][ponto_atual]
+            else:
+                distancia_rota += dpe[ponto_atual]
+            rota.append(ponto_atual)
+
+        # Retorna para a empresa
+        if rota:
+            distancia_rota += dpe[rota[-1]]
+
+        # Adiciona a distância ao ônibus apropriado
+        if onibus == 1:
+            total_onibus1 += 1
+            km_onibus1 += distancia_rota
+        else:
+            total_onibus2 += 1
+            km_onibus2 += distancia_rota
+
+    while empregados_no_onibus < (capacidade_onibus1 if total_onibus1 < max_onibus1 else capacidade_onibus2) and len(pontos_atendidos) < 30:
+            # Escolhe o próximo ponto baseado na proximidade e capacidade disponível
+            ponto_atual = None
+            if rota:
+                ponto_atual = min(
+                    set(range(30)) - pontos_atendidos,
+                    key=lambda x: d[rota[-1]][x] if NC[x] <= (capacidade_onibus1 - empregados_no_onibus if total_onibus1 < max_onibus1 else capacidade_onibus2 - empregados_no_onibus) else float('inf')
+                )
+            else:
+                ponto_atual = max(range(30), key=lambda x: dpe[x] if x not in pontos_atendidos else -1)
+
+            if ponto_atual is None:
+                break
+
+            pontos_atendidos.add(ponto_atual)
+            empregados_no_onibus += NC[ponto_atual]
+            if rota:
+                distancia_rota += d[rota[-1]][ponto_atual]
+            else:
+                distancia_rota += dpe[ponto_atual]
+            rota.append(ponto_atual)
+
+        # Retorna para a empresa
+            if rota:
+              distancia_rota += dpe[rota[-1]]
+
+        # Decide qual ônibus será utilizado para essa rota
+            if empregados_no_onibus > capacidade_onibus2 and total_onibus1 < max_onibus1:
+              total_onibus1 += 1
+              km_onibus1 += distancia_rota
+            else:
+              total_onibus2 += 1
+              km_onibus2 += distancia_rota
 
     custo = calcular_custo(total_onibus1, total_onibus2, km_onibus1, km_onibus2)
     return custo, total_onibus1, total_onibus2, km_onibus1, km_onibus2
-
-custo, total_onibus1, total_onibus2, km_onibus1, km_onibus2 = solucao_gulosa()
-
+   
 print(f'Custo total: R${custo:,.2f}')
 print(f'Total ônibus 1: {total_onibus1}, km rodados: {km_onibus1:,.2f}')
 print(f'Total ônibus 2: {total_onibus2}, km rodados: {km_onibus2:,.2f}')
